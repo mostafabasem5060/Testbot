@@ -1,6 +1,6 @@
 import requests
-from telegram import Bot, Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 import os
 
 # الحصول على API key من المتغيرات البيئية
@@ -20,7 +20,7 @@ def remove_background(image_url):
         return None
 
 # دالة للتعامل مع الصور في التليجرام
-def handle_photo(update, context):
+async def handle_photo(update: Update, context):
     # الحصول على الصورة من الرسالة
     photo_file = update.message.photo[-1].get_file()
     photo_url = photo_file.file_url
@@ -30,26 +30,25 @@ def handle_photo(update, context):
     
     if image_data:
         # إرسال الصورة بدون خلفية
-        update.message.reply_photo(photo=image_data)
+        await update.message.reply_photo(photo=image_data)
     else:
-        update.message.reply_text("حدث خطأ أثناء إزالة الخلفية.")
+        await update.message.reply_text("حدث خطأ أثناء إزالة الخلفية.")
 
 # دالة لتحديث البوت
-def start(update, context):
-    update.message.reply_text("مرحباً! أرسل لي صورة لأقوم بإزالة الخلفية عنها.")
+async def start(update: Update, context):
+    await update.message.reply_text("مرحباً! أرسل لي صورة لأقوم بإزالة الخلفية عنها.")
 
-def main():
+async def main():
     # إعداد البوت باستخدام التوكن الذي تم تخزينه في المتغيرات البيئية
-    updater = Updater(bot_token, use_context=True)
-    dp = updater.dispatcher
+    application = Application.builder().token(bot_token).build()
     
     # إضافة المعالجين
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     
     # بدء البوت
-    updater.start_polling()
-    updater.idle()
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
