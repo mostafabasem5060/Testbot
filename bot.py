@@ -14,9 +14,9 @@ openai.api_key = OPENAI_API_KEY
 # دالة للرد على الرسائل باستخدام OpenAI
 def chat_with_ai(text):
     try:
-        # استخدام واجهة completions الجديدة في OpenAI
+        # استخدام GPT-3.5 بدلاً من GPT-4
         response = openai.completions.create(
-            model="gpt-4",  # يمكنك استخدام "gpt-3.5-turbo" إذا كنت تستخدم الإصدار المجاني
+            model="gpt-3.5-turbo",  # استخدام GPT-3.5
             prompt=text,
             max_tokens=150
         )
