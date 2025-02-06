@@ -3,8 +3,8 @@ import telegram
 import requests
 import os
 
-TOKEN = "7966771708:AAFziMRBD5NzB1nde6pP4yhjUrbVDo5gPE8"
-WEBHOOK_URL = f"https://your-app-name.onrender.com/{TOKEN}"  # سيتم استبدال your-app-name لاحقًا
+TOKEN = os.environ.get("BOT_TOKEN")  # نستخدم متغيرات بيئة لتخزين التوكن
+WEBHOOK_URL = f"{os.environ.get('RAILWAY_URL')}/{TOKEN}"  
 URL = "https://elmanasa.edurs.net/"
 
 HEADERS = {
