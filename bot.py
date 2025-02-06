@@ -1,49 +1,55 @@
 import requests
-import telegram
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram import Bot, Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import os
 
-# إعداد التوكنات
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # ضع توكن بوت تيليجرام هنا
-DEEPSEEK_API_KEY = "sk-f16232f7e219486a927e242e475abd5b"  # ضع مفتاح DeepSeek API هنا
+# الحصول على API key من المتغيرات البيئية
+remove_bg_api_key = os.getenv('REMOVE_BG_API_KEY')
+bot_token = os.getenv('BOT_API_TOKEN')
 
-# دالة للرد على الرسائل باستخدام DeepSeek API
-def chat_with_deepseek(text):
-    url = "https://api.deepseek.com/v1/completions"  # URL الأساسي لـ DeepSeek API
-    headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "prompt": text,
-        "max_tokens": 150,
-        "temperature": 0.7,  # درجة الحرارة (اختياري)
-        "top_p": 1,  # اختياري
-    }
+# دالة لحذف الخلفية باستخدام API من remove.bg
+def remove_background(image_url):
+    response = requests.post(
+        'https://api.remove.bg/v1.0/removebg',
+        files={'image_file': image_url},
+        headers={'X-Api-Key': remove_bg_api_key}
+    )
+    if response.status_code == 200:
+        return response.content
+    else:
+        return None
 
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()  # للتحقق من الأخطاء في الاستجابة
-        result = response.json()  # الحصول على نتيجة الاستجابة
-        return result['choices'][0]['text'].strip()  # إعادة النص من الاستجابة
-    except Exception as e:
-        return f"❌ حدث خطأ أثناء الاتصال بـ DeepSeek: {str(e)}"
+# دالة للتعامل مع الصور في التليجرام
+def handle_photo(update, context):
+    # الحصول على الصورة من الرسالة
+    photo_file = update.message.photo[-1].get_file()
+    photo_url = photo_file.file_url
+    
+    # إزالة الخلفية
+    image_data = remove_background(photo_url)
+    
+    if image_data:
+        # إرسال الصورة بدون خلفية
+        update.message.reply_photo(photo=image_data)
+    else:
+        update.message.reply_text("حدث خطأ أثناء إزالة الخلفية.")
 
-# دالة لمعالجة رسائل المستخدمين
-async def handle_message(update: Update, context: CallbackContext):
-    user_message = update.message.text
-    ai_response = chat_with_deepseek(user_message)
-    await update.message.reply_text(ai_response)
+# دالة لتحديث البوت
+def start(update, context):
+    update.message.reply_text("مرحباً! أرسل لي صورة لأقوم بإزالة الخلفية عنها.")
 
-# تشغيل البوت
 def main():
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    # إعداد البوت باستخدام التوكن الذي تم تخزينه في المتغيرات البيئية
+    updater = Updater(bot_token, use_context=True)
+    dp = updater.dispatcher
+    
+    # إضافة المعالجين
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.photo, handle_photo))
+    
+    # بدء البوت
+    updater.start_polling()
+    updater.idle()
 
-    # استقبال الرسائل النصية
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    application.run_polling()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
