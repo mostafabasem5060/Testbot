@@ -14,11 +14,13 @@ openai.api_key = OPENAI_API_KEY
 # دالة للرد على الرسائل باستخدام OpenAI
 def chat_with_ai(text):
     try:
-        response = openai.ChatCompletion.create(
+        # استخدام API الجديد من OpenAI
+        response = openai.completions.create(
             model="gpt-4",  # يمكنك استخدام "gpt-3.5-turbo" إذا كنت تستخدم الإصدار المجاني
-            messages=[{"role": "user", "content": text}]
+            prompt=text,
+            max_tokens=150
         )
-        return response["choices"][0]["message"]["content"]
+        return response['choices'][0]['text'].strip()
     except Exception as e:
         return f"❌ حدث خطأ: {str(e)}"
 
