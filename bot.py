@@ -1,6 +1,6 @@
 import requests
 from telegram import Bot, Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters
 import os
 
 # الحصول على API key من المتغيرات البيئية
@@ -45,7 +45,7 @@ def main():
     
     # إضافة المعالجين
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.photo, handle_photo))
+    dp.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     
     # بدء البوت
     updater.start_polling()
