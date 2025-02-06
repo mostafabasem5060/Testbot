@@ -1,4 +1,4 @@
-import openai
+import requests
 import telegram
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
@@ -6,28 +6,34 @@ import os
 
 # إعداد التوكنات
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # ضع توكن بوت تيليجرام هنا
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # ضع مفتاح OpenAI API هنا
+DEEPSEEK_API_KEY = "sk-f16232f7e219486a927e242e475abd5b"  # ضع مفتاح DeepSeek API هنا
 
-# إعداد OpenAI API
-openai.api_key = OPENAI_API_KEY
+# دالة للرد على الرسائل باستخدام DeepSeek API
+def chat_with_deepseek(text):
+    url = "https://api.deepseek.ai/v1/completions"  # URL الأساسي لـ DeepSeek API
+    headers = {
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "prompt": text,
+        "max_tokens": 150,
+        "temperature": 0.7,  # درجة الحرارة (اختياري: تأثر في تنوع الاستجابات)
+        "top_p": 1,  # اختياري: تأثير التوزيع الاحتمالي للاستجابات
+    }
 
-# دالة للرد على الرسائل باستخدام OpenAI
-def chat_with_ai(text):
     try:
-        # استخدام GPT-3.5 بدلاً من GPT-4
-        response = openai.completions.create(
-            model="gpt-3.5-turbo",  # استخدام GPT-3.5
-            prompt=text,
-            max_tokens=150
-        )
-        return response['choices'][0]['text'].strip()
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # للتحقق من الأخطاء في الاستجابة
+        result = response.json()  # الحصول على نتيجة الاستجابة
+        return result['choices'][0]['text'].strip()  # إعادة النص من الاستجابة
     except Exception as e:
-        return f"❌ حدث خطأ: {str(e)}"
+        return f"❌ حدث خطأ أثناء الاتصال بـ DeepSeek: {str(e)}"
 
 # دالة لمعالجة رسائل المستخدمين
 async def handle_message(update: Update, context: CallbackContext):
     user_message = update.message.text
-    ai_response = chat_with_ai(user_message)
+    ai_response = chat_with_deepseek(user_message)
     await update.message.reply_text(ai_response)
 
 # تشغيل البوت
