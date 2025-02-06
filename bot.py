@@ -10,7 +10,7 @@ DEEPSEEK_API_KEY = "sk-f16232f7e219486a927e242e475abd5b"  # ضع مفتاح Deep
 
 # دالة للرد على الرسائل باستخدام DeepSeek API
 def chat_with_deepseek(text):
-    url = "https://api.deepseek.ai/v1/completions"  # URL الأساسي لـ DeepSeek API
+    url = "https://api.deepseek.com/"  # URL الأساسي لـ DeepSeek API
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         "Content-Type": "application/json"
