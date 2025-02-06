@@ -1,46 +1,42 @@
-from flask import Flask, request
+import openai
 import telegram
-import requests
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
 import os
 
-TOKEN = os.environ.get("BOT_TOKEN")  # نستخدم متغيرات بيئة لتخزين التوكن
-WEBHOOK_URL = f"{os.environ.get('RAILWAY_URL')}/{TOKEN}"  
-URL = "https://elmanasa.edurs.net/"
+# جلب القيم من متغيرات البيئة في Railway
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/847.96 (KHTML, like Gecko) Chrome/156.4.6478.78 Mobile Safari/637.76"
-}
+# إعداد OpenAI API
+openai.api_key = OPENAI_API_KEY
 
-bot = telegram.Bot(token=TOKEN)
-app = Flask(__name__)
-
-@app.route(f"/{TOKEN}", methods=["POST"])
-def respond():
-    """ معالجة الرسائل الواردة من تيليجرام """
-    update = telegram.Update.de_json(request.get_json(force=True), bot)
-
-    if update.message and update.message.text == "/start":
-        page_content = fetch_website()
-        update.message.reply_text(page_content)
-
-    return "ok", 200
-
-@app.route("/set_webhook", methods=["GET"])
-def set_webhook():
-    """ تعيين Webhook للبوت """
-    webhook_set = bot.setWebhook(WEBHOOK_URL)
-    if webhook_set:
-        return "Webhook set successfully!", 200
-    return "Failed to set webhook", 400
-
-def fetch_website():
-    """ جلب محتوى الموقع """
+# دالة للرد على الرسائل باستخدام OpenAI
+def chat_with_ai(text):
     try:
-        response = requests.get(URL, headers=HEADERS)
-        response.raise_for_status()
-        return response.text[:4000]  # إرسال أول 4000 حرف فقط
-    except requests.exceptions.RequestException as e:
-        return f"حدث خطأ أثناء جلب الصفحة: {e}"
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # يمكنك استخدام "gpt-3.5-turbo" إذا كنت تستخدم الإصدار المجاني
+            messages=[{"role": "user", "content": text}]
+        )
+        return response["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"❌ حدث خطأ: {str(e)}"
+
+# دالة لمعالجة رسائل المستخدمين
+def handle_message(update: telegram.Update, context: CallbackContext):
+    user_message = update.message.text
+    ai_response = chat_with_ai(user_message)
+    update.message.reply_text(ai_response)
+
+# تشغيل البوت
+def main():
+    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    # استقبال الرسائل النصية
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    main()
